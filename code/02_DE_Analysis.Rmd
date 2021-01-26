@@ -1,0 +1,241 @@
+---
+title: "TMT Proteomics DE Analysis"
+author: "Jake Gockley"
+date: "1/12/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source('code/01_Analysis_Functions.R')
+synapser::synLogin()
+```
+
+## Import Data
+```{r Load Data}
+
+Log2_Normalized <-TMT_Express_Load('syn21266454', 1)
+Normalized <- TMT_Express_Load('syn21266453', 1)
+Meta <- TMT_Express_Load('syn21323404', 1)
+
+# - Public Facing BioSpecimin Data: syn21323366
+# - Staged BioSpecimin Data: syn23583548
+BioSpecimin <- TMT_Express_Load('syn21323366', 0)
+if( "assay" %in% colnames(BioSpecimin) ){
+}else{
+  BioSpecimin <- TMT_Express_Load('syn23583548', 0)
+}
+
+BioSpecimin <- BioSpecimin[ BioSpecimin$assay == 'TMT quantitation', ]
+Meta$specimenID <- row.names(Meta)
+Meta <- dplyr::left_join(Meta, BioSpecimin, by = 'specimenID' )
+
+Clinical <- TMT_Express_Load( 'syn3191087',0 )
+
+Meta <- dplyr::left_join(Meta, Clinical, by = 'individualID' )
+Meta <- Meta[ ,colSums(is.na(Meta))<nrow(Meta) ] 
+row.names( Meta ) <- Meta$batchChannel
+Meta <- Meta[ colnames(Log2_Normalized), ]
+Meta <- Meta[ ,colnames(Meta)[ (colnames(Meta) %in%'controlType' )==F] ]
+
+# Harmonize case-control status
+Meta$diagnosis <- "other"
+Meta$diagnosis[Meta$cogdx == 1 & Meta$braaksc <= 3 & Meta$ceradsc >= 3] <- "control"
+Meta$diagnosis[Meta$cogdx == 4 & Meta$braaksc <= 4 & Meta$ceradsc >= 2] <- "AD"
+
+kableExtra::kable(table(Meta$diagnosis))
+
+## Add Ages over 90 for modeling
+Mast <- TMT_Express_Load('syn23573928', 0)
+Mast<- Mast[ !duplicated(Mast$individualID), ]
+Meta <- dplyr::left_join(Meta[ , colnames(Meta)[ (colnames(Meta) %in% c('age_at_visit_max', 'age_first_ad_dx', 'age_death') )==F ] ], Mast[, c('individualID', 'age_at_visit_max', 'age_first_ad_dx', 'age_death')],by = 'individualID')
+
+#Convert APOE
+APOS <- as.numeric(names( table(Meta$apoe_genotype) ))
+names(APOS) <- APOS
+APOS[names( table(Meta$apoe_genotype) )] <- 0
+APOS[grepl("4",names(APOS))] <- 1
+APOS[grepl("44",names(APOS))] <- 2
+Meta$APOE <- as.numeric( APOS[ as.character(Meta$apoe_genotype) ] )
+
+
+## Winzorize Expression Data
+sink_preWinzor<- Log2_Normalized
+for( i in 1:dim(Log2_Normalized)[1] ){
+  Log2_Normalized[i,] <- DescTools::Winsorize( as.numeric(Log2_Normalized[i,]), na.rm = TRUE ) 
+}
+row.names(Meta) <- Meta$batchChannel
+
+#Code Sex and Diagnosis as Factors
+Meta$msex <- as.factor(Meta$msex)
+Meta$APOE <- as.factor(Meta$APOE)
+
+####Meta for Diagnosis
+Meta_D <- Meta[ Meta$diagnosis %in% c('AD','control'), ]
+Meta_D$diagnosis <- as.factor(Meta_D$diagnosis)
+
+```
+
+## Diagnosis Differential expression
+```{r Model, echo=FALSE}
+Diagnosis_PVals <- suppressMessages({ suppressWarnings({ do.call( rbind, lapply(1:dim(Log2_Normalized)[1], Logistic_Model, EXP=Log2_Normalized[ ,row.names(Meta_D) ],
+                                            MET=Meta_D,
+                                            Vars=c( "pmi", "diagnosis" ),
+                                            Diag= "diagnosis",
+                                            SampleID='batchChannel'
+                                           )
+                            )
+}) })
+  #sink<-Diagnosis_PVals
+  
+Diagnosis_Associations <- Cleaner(Diagnosis_PVals)
+
+# BRAAK - PMI, Diagnosis, APOE, 
+## Braak Stage is a semiquantitative measure of severity of neurofibrillary tangle (NFT) pathology. 
+BRAKK_PVals <-  suppressMessages({ suppressWarnings({ do.call( rbind, lapply(rownames(Log2_Normalized), NeuroPath_Calc, Exp=Log2_Normalized,
+                                            Dat=MET,
+                                            Path='braaksc'
+                                           )
+                            )
+}) })
+
+BRAKK_Association <- Cleaner( BRAKK_PVals )
+ # - pmi,diagnosis (87  9)
+ # - pmi,diagnosis,APOE (55  9)
+ # - pmi,diagnosis,APOE,Age_death ( 24  9 )
+
+#tmp<-BRAKK_Association
+
+# CERAD
+## CERAD score is a semiquantitative measure of neuritic plaques.
+CERAD_PVals <-  suppressMessages({ suppressWarnings({ do.call( rbind, lapply(rownames(Log2_Normalized), NeuroPath_Calc, Exp=Log2_Normalized,
+                                            Dat=MET,
+                                            Path='ceradsc'
+                                           )
+                            )
+}) })
+
+CERAD_Association <- Cleaner( CERAD_PVals )
+#168 without Age_of_death
+
+# CogDx
+## Final consensus cognitive diagnosis
+# Value Coding
+# 1     NCI: No cognitive impairment (No impaired domains)
+# 2     MCI: Mild cognitive impairment (One impaired domain) and NO other cause of CI
+# 3     MCI: Mild cognitive impairment (One impaired domain) AND another cause of CI
+# 4     AD: Alzheimer’s dementia and NO other cause of CI (NINCDS PROB AD)
+# 5     AD: Alzheimer’s dementia AND another cause of CI (NINCDS POSS AD)
+# 6     Other dementia: Other primary cause of dementia
+## Model Uses 1, 2, and 4 only ( 374 out of 400 )
+COGDX_PVals <- suppressMessages({ suppressWarnings({ 
+  do.call( rbind, lapply(rownames(Log2_Normalized), NeuroPath_Calc, Exp=Log2_Normalized,
+                                            Dat=MET,
+                                            Path='cogdx'
+                                           )
+                            )
+}) })
+
+COGDX_Association <- Cleaner( COGDX_PVals )
+# 600+ without age_of_death
+#176   9 with age_of_death
+# Dcfdx
+## Clinical diagnosis of cognitive status [ lv = Last Valid Score ]
+# 1 NCI: No cognitive impairment
+# 2 MCI: Mild cognitive impairment, no other condition contributing to CI
+# 3 MCI+: Mild cognitive impairment AND another condition contributing to CI
+# 4 AD: Alzheimer’s dementia, no other condition contributing to CI (NINCDS/ADRDA Probable AD)
+# 5 AD+: Alzheimer’s dementia AND other condition contributing to CI (NINCDS/ADRDA Possible AD)
+# 6 Other dementia: Other primary cause of dementia, no clinical evidence of Alzheimer’s dementia
+## - Model Uses 1,2,4
+dcfdx_PVals <- suppressMessages({ suppressWarnings({ do.call( rbind, lapply(rownames(Log2_Normalized), NeuroPath_Calc, Exp=Log2_Normalized,
+                                            Dat=MET,
+                                            Path='dcfdx_lv'
+                                           )
+                            )
+}) })
+dcfdx_Association <- Cleaner( dcfdx_PVals )
+#670   9 without age_of_death
+#322   9 with age_of_death
+
+Sink<-list(
+  Dignosis=Diagnosis_Associations,
+  BRAAK=BRAKK_Association,
+  CERAD=CERAD_Association,
+  COGDX=COGDX_Association
+)  
+
+```
+
+```{r TMT_Coexpression}
+install.packages('vbsr', repos='http://cran.us.r-project.org')
+
+#Log2_Normalized
+
+#att <- pvbsrBootstrap( y=y, x=X, nsamp=10, cores=1 )
+
+
+Cor_Input <- data.table::transpose(Log2_Normalized)
+row.names(Cor_Input) <- colnames(Log2_Normalized)
+colnames(Cor_Input) <- row.names(Log2_Normalized)
+Cor_Input <- as.matrix( Cor_Input )
+
+Cor_Object <- Hmisc::rcorr( Cor_Input, type=c("spearman") )
+Cors <- Cor_Object$r
+Cor_PVal <- Cor_Object$P
+#38% of intereactions are si co-exp with out corrections for multiple comps
+# 7.23% of intereactions are sig co-exp with Bonferroni
+# 27.86 of intereactions are sig co-exp with fdr
+
+Cor_PVal_fdr <- as.data.frame(Cor_Object$P )
+Cor_PVal_fdr <- apply( Cor_PVal_fdr, 1,  p.adjust, method = 'fdr', n=8817 )
+
+#### Clean CoExpression to only FDR significant interactions;
+cor( as.vector(as.numeric(Log2_Normalized[1,])), as.vector(as.numeric(Log2_Normalized[3,])), method = "spearman")
+#mark<-Sys.time()
+#FOO <- psych::corr.test(x, method = "spearman")
+#Sys.time()-mark
+  
+  #Prep for partial correlation detection
+Final <- bcv::impute.svd( Cor_Input, k = 100 )
+Fin <- Final$x
+colnames( Fin ) <- colnames( Cor_Input )
+row.names( Fin ) <- row.names( Cor_Input )
+
+#Run Partial correlations for each gene
+RUNNe <- function( i=i, p=p){
+    source('code/01_Analysis_Functions.R')
+    OBS <- i
+    y <- as.matrix(p[,OBS]) 
+    colnames(y) <- i
+    X <- p[,(colnames(p) %in% OBS) == F ]
+    att <- pvbsrBootstrap( y=y, x=X, nsamp=10, cores=1 )
+    eval( parse(text = paste0( 'names( att )[ names( att ) == \'intercept\' ] <- \'', OBS, '\'') ))
+    return(att[colnames(p)])
+}
+
+core <- parallel::detectCores()-2 
+cl <- makePSOCKcluster(core)
+registerDoParallel(cl)
+
+LIST <- colnames( Fin )
+
+mark <- Sys.time()
+  FOO <- t( parApply(cl, as.matrix( LIST[1:48] ), 1, RUNNe, p=Fin) )
+message( paste0( Sys.time()-mark )) 
+
+#12 - 2.8361718972524
+#24 - 5.19909669955571
+#48 - 11.7518907666206
+#250- 57.5183554649353
+#9*4*57.5183554649353
+
+mark <- Sys.time()
+  foo <- t( parApply(cl, as.matrix( LIST[1:length(LIST)] ), 1, RUNNe, Fin) )
+message( paste0( Sys.time()-mark )) 
+  
+  
+```
+
