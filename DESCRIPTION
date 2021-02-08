@@ -1,0 +1,41 @@
+Package: TMT_Proteomics
+Title: Processing Proteomics data
+Version: 0.0.0.1
+Authors@R: 
+    person(given = "Jake",
+           family = "Gockley",
+           role = c("aut", "cre"),
+           email = "jake.gockley@sagebase.org",
+           comment = c(ORCID = "0000-0001-7993-5308"))
+Description: This repo is designed for a simple pass through the Emory TMT Proteomics data.
+License: MIT + file LICENSE
+URL: https://github.com/jgockley62/TMT_Proteomics,
+    https://github.com/jgockley62/TMT_Proteomics
+Encoding: UTF-8
+LazyData: true
+Suggests: 
+    testthat (>= 2.1.0)
+RoxygenNote: 7.1.1
+biocViews:
+Imports:
+    dplyr,
+    parallel,
+    doParallel,
+    vbsr,
+    biomaRt,
+    data.table,
+    Hmisc,
+    bcv,
+    reshape2,
+    synapser,
+    githubr,
+    kableExtra,
+    DescTools
+Additional_repositories:
+    http://ran.synapse.org
+Remotes:
+    GabrielHoffman/mvIC@master,
+    Sage-Bionetworks/sagethemes@main,
+    GabrielHoffman/variancePartition
+VignetteBuilder:
+    knitr
