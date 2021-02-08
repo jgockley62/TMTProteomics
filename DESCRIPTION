@@ -1,4 +1,3 @@
-Package: TMT_Proteomics
 Title: Processing Proteomics data
 Version: 0.0.0.1
 Authors@R: 
@@ -32,6 +31,7 @@ Imports:
 Additional_repositories:
     http://ran.synapse.org
 Remotes:
+    jgockley/TMT_Proteomics,
     brian-bot/githubr,
     GabrielHoffman/mvIC@master,
     Sage-Bionetworks/sagethemes@main,
