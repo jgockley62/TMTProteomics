@@ -2,7 +2,7 @@ library(testthat)
 source('code/01_Analysis_Functions.R')
 synapser::synLogin()
 #test_check("code/01_Analysis_Functions.R")
-test_file("tests/testthat.R")
+test_file("tests/test_01_Analysis_Functions.R")
 
 test_that("TMT_Express_Load checks input for type", {
   expect_identical(TMT_Express_Load(4,1), "Invalid Synapse ID: Input SynID is not a character string")

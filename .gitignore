@@ -1,2 +1,4 @@
 Ignore/*
 Ignore/
+*.csv
+*.tsv

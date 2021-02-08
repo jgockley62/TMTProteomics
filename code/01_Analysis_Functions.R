@@ -17,7 +17,7 @@ TMT_Express_Load <- function( SynID, names ){
   #if(  grepl('Benefactor not found for', as.character( try( synapser::synGetPermissions(SynID), silent = TRUE ) )) ){
   #  return("Syn ID does not exist")
   #}
-  if(  grepl('You do not have READ permission for the requested entity', as.character( try( synapser::synGetPermissions(SynID), silent = TRUE ) )) ){
+  if(  'You do not have READ permission for the requested entity' %in% as.character( try( synapser::synGetPermissions(SynID), silent = TRUE ) ) ){
     return("User does not have READ access")
   }
   if( !grepl('.csv$', synapser::synGet(SynID)$path ) ){
@@ -36,6 +36,19 @@ TMT_Express_Load <- function( SynID, names ){
 }
 
 Cleaner <- function( Input ){
+  #Test if its a matrix
+  if( !is.matrix(Input) ){
+    return("Input is not a Matrix")
+  }
+  #test if it has 6 columns
+  if( !(dim(Input)[2] == 6) ){
+    return("Input not six columns")
+  }
+  #test if column 6 are p-values
+  if( !( as.numeric(summary(as.numeric(Input[,6]))['Max.']) <= 1 & as.numeric(summary(as.numeric(Input[,6]))['Max.']) <= 1 ) ){
+    return("Column Six Doesn't Appear to be P-Values")
+  }
+ 
   colnames(Input) <- c( "Peptide", 'Coefficient', 'OR', 'CI_L', 'CI_H', "PVal" )
   Input <- as.data.frame(Input)
   Input$Peptide <- as.character(Input$Peptide)
@@ -61,18 +74,47 @@ Logistic_Model <- function( i, EXP, MET, Vars, Diag, SampleID ){
   #'@Diag - Character vector of metadata column to use as response variable must be binary factor eg. "diagnosis"
   #'@SampleID - Character vector of Meta Column name to use as sample ID eg. 'batchChannel'
   
+  #Are the tables filered correctly
   if( !(as.numeric(table(row.names(MET)==colnames(EXP))[TRUE]) == length(row.names(MET))) ){
-    return( "Error Meta Data and Expression Samples Don't Align")
+      return( "Error Meta Data and Expression Sample Row and Column Names Don't Align")
   }
+  #Is entry a row
   if( !(as.numeric( i ) )){
     return( "i must be a row number")
   }
+  #test if row exists
   if( i > dim(EXP)[1] ){
     return( "i must be a valid row number")
   }
+  #Test Vars - Character Vector
+  if( !(is.character(Vars) ) ){
+    #Test Vars - Null
+    if( (is.null(Vars) ) ){
+    }else{
+      return( "Vars Must be Character Vector or NULL")
+    }
+  }else{
+    #Test Vars - Present in Meta Data
+    if( !(is.null(Vars)) & !( as.numeric(table(Vars %in% colnames(MET))['TRUE'])== length(Vars) )  ){
+      return( "Error Meta Data Vars Not Column Names in Meta Data Dataframe")
+    }
+  }
+  #Test dataframes 
   if( !(is.data.frame(EXP) & is.data.frame(MET) ) ){
     return( "Error Meta Data and Expression Objects Must be Data Frames")
   }
+  #Test Vars - Character Vector
+  if( !(is.character(Diag) ) ){
+    return( "Diag Must be Character")
+  }
+  #Test Vars - Character Vector
+  if( !(length(Diag) == 1 ) ){
+    return( "Diag Must Only 1 Value")
+  }
+  if( !(is.character(SampleID) ) ){
+    return( "SampleID's Must be Character")
+  }
+  
   
   #Vars<-NULL
   #Form the Model data frame object
@@ -105,11 +147,42 @@ Logistic_Model <- function( i, EXP, MET, Vars, Diag, SampleID ){
 
 
 #NeuroPath_Calc( GN='VAMP1|P23763', Path='braaksc', Exp=EXP, Dat=MET )
-NeuroPath_Calc <- function( GN,Path,Exp, Dat ){
+NeuroPath_Calc <- function( GN,Path,Exp, MET ){
   #'@GN a character ENSG Gene name eg 'VAMP1|P23763'
   #'@Path the character string of Neuropath column to use for model eg. EITHER: 'ceradsc', 'braaksc', 'cogdx', 'dcfdx_lv'
   #'@EXP Expression data frame
   #'@MET Metadata data frame
+  
+  #Are the tables filered correctly
+  if( !(as.numeric(table(row.names(MET)==colnames(Exp))[TRUE]) == length(colnames(Exp)) ) ){
+    return( "Error Meta Data and Expression Sample Row and Column Names Don't Align")
+  }
+  #test if row exists
+  if( !(GN %in% row.names(Exp)) ){
+    return( "GN must be a valid row name in the expression dataset")
+  }
+  
+  #Test Path - Character Vector
+  if( !(is.character(Path) ) ){
+    return( "Path Must be Character Vector")
+  }
+  #Test Path - Present in Meta Data
+  if( !( Path %in% colnames(MET)) ){
+      return( "Path Not a Valid Meta Data Column name")
+  }
+  #Test Path - length
+  if( !( length(Path) == 1) ){
+    return( "Path Can only be one variable at the moment")
+  }
+  
+  #Test dataframes 
+  if( !(is.data.frame(Exp) & is.data.frame(MET) ) ){
+    return( "Error Meta Data and Expression Objects Must be Data Frames")
+  }
+  
+  #if( !(is.character(SampleID) ) ){
+  #  return( "SampleID's Must be Character")
+  #}
   
   message(paste0("Processing: ", GN))
   
@@ -148,7 +221,6 @@ NeuroPath_Calc <- function( GN,Path,Exp, Dat ){
   ctable <- cbind(ctable, "p value" = p)
   
   ci <- confint( m, parm=as.vector("Gene") )
-  
   
   Coeff <- m$coefficients['Gene']
   names( GN ) <- 'Gene'
