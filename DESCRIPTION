@@ -1,7 +1,7 @@
 Package: TMT_Proteomics
 Title: Processing Proteomics data
 Version: 0.0.0.1
-Authors@R: 
+Authors@R:
     person(given = "Jake",
            family = "Gockley",
            role = c("aut", "cre"),
