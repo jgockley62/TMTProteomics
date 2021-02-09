@@ -30,7 +30,7 @@ Imports:
 Additional_repositories:
     http://ran.synapse.org
 Remotes:
-    jgockley/TMT_Proteomics,
+    jgockley62/TMT_Proteomics,
     brian-bot/githubr,
     GabrielHoffman/mvIC@master,
     Sage-Bionetworks/sagethemes@main,
