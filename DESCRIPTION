@@ -17,6 +17,7 @@ RoxygenNote: 7.1.1
 biocViews:
 Imports:
     dplyr,
+    knitr,
     parallel,
     data.table,
     Hmisc,
