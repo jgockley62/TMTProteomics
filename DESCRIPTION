@@ -18,8 +18,6 @@ biocViews:
 Imports:
     dplyr,
     parallel,
-    doParallel,
-    biomaRt,
     data.table,
     Hmisc,
     reshape2,
