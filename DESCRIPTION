@@ -19,7 +19,6 @@ Imports:
     dplyr,
     parallel,
     doParallel,
-    vbsr,
     biomaRt,
     data.table,
     Hmisc,
@@ -30,6 +29,7 @@ Imports:
 Additional_repositories:
     http://ran.synapse.org
 Remotes:
+    blogsdon/vbsr/vbsr,
     brian-bot/githubr,
     GabrielHoffman/mvIC@master,
     Sage-Bionetworks/sagethemes@main,
