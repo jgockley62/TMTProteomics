@@ -23,7 +23,9 @@ Imports:
     reshape2,
     synapser,
     kableExtra,
-    DescTools
+    biomaRt,
+    DescTools,
+    doParallel
 Additional_repositories:
     http://ran.synapse.org
 Remotes:
