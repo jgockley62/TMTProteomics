@@ -7,7 +7,7 @@ library(covr)
 library(testthat)
 library(TMTProteomics)
 
-synapser::synLogin()
+# synapser::synLogin()
 
 # Check TMT_Load()
 ## Input Tests
