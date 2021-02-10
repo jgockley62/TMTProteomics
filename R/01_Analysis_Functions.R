@@ -3,7 +3,7 @@
 #setwd('~/Desktop/Projects/TMT_Proteomics/')
 #usethis::use_testthat()
 
-source('R/01_Analysis_Functions.R')
+#source('R/01_Analysis_Functions.R')
 
 #SynID <- 'syn23583548'
 TMT_Express_Load <- function( SynID, names ){
