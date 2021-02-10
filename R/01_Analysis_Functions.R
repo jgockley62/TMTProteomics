@@ -3,6 +3,7 @@
 #setwd('~/Desktop/Projects/TMT_Proteomics/')
 #usethis::use_testthat()
 
+source('R/01_Analysis_Functions.R')
 
 #SynID <- 'syn23583548'
 TMT_Express_Load <- function( SynID, names ){
@@ -209,7 +210,8 @@ NeuroPath_Calc <- function( GN,Path,Exp, MET ){
     Dat <- Dat[ !is.na(Dat$age_death), ] 
     Dat$APOE <- as.factor(as.character(Dat$APOE))
     Dat <- Dat[ , c('Gene','pmi', 'APOE', 'age_death', 'diagnosis','ceradsc','braaksc','cogdx','dcfdx_lv') ]
-    m <- eval(parse(text=paste0( 'MASS::polr(', Path, '~ Gene + pmi + APOE + diagnosis + age_death , data = Dat, na.action = na.omit, Hess=TRUE)' )))
+    #m <- eval(parse(text=paste0( 'MASS::polr(', Path, '~ Gene + pmi + APOE + diagnosis , data = Dat, na.action = na.omit, Hess=TRUE)' )))
+    m <- eval(parse(text=paste0( 'MASS::polr(', Path, '~ Gene + pmi + diagnosis , data = Dat, na.action = na.omit, Hess=TRUE)' )))
   }else{
     Dat <- Dat[ , c('Gene','pmi', 'APOE', 'diagnosis','ceradsc','braaksc','cogdx','dcfdx_lv') ]
     m <- eval(parse(text=paste0( 'MASS::polr(', Path, '~ Gene + pmi + APOE + diagnosis, data = Dat, na.action = na.omit, Hess=TRUE)' )))
@@ -234,7 +236,7 @@ NeuroPath_Calc <- function( GN,Path,Exp, MET ){
   
 }
 
-pvbsrBootstrap = function(y,x,nsamp=100,cores=8){
+spvbsrBootstrap = function(y,x,nsamp=100,cores=8){
   library(dplyr)
   library(parallel)
   library(doParallel)
