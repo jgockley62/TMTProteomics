@@ -3,12 +3,21 @@
 #setwd('~/Desktop/Projects/TMT_Proteomics/')
 #usethis::use_testthat()
 
-#source('R/01_Analysis_Functions.R')
 
-#SynID <- 'syn23583548'
+#' SynID <- 'syn23583548'
+#' A function
+#' 
+#' @param SynID A vector
+#' @param names A numeric
+#' 
+#' @return The dataframe pulled from synapse
+#' @importFrom synapser synGet
+#' @importFrom data.table fread
+#' @export
+
 TMT_Express_Load <- function( SynID, names ){
-  #'@SynID a synapse ID of a proteomics csv matrix eg. syn21266454 or syn21266454
-  #'@names number corresponding to the row that are the rownames (Use 0 if none apply )
+  #'@param  SynID a synapse ID of a proteomics csv matrix eg. syn21266454 or syn21266454
+  #'@param  names number corresponding to the row that are the rownames (Use 0 if none apply )
   if( !is.character(SynID) ){
     return("Invalid Synapse ID: Input SynID is not a character string")
   }
@@ -36,6 +45,13 @@ TMT_Express_Load <- function( SynID, names ){
   return( import )
 }
 
+#' A function
+#' 
+#' @param Input A matrix
+#' 
+#' @return A vector
+#' @importFrom stats p.adjust
+#' @export
 Cleaner <- function( Input ){
   #Test if its a matrix
   if( !is.matrix(Input) ){
@@ -67,13 +83,29 @@ Cleaner <- function( Input ){
   return( Input )
 }
 
+
+#' A function
+#' 
+#'@param i Row Number to use in expression data
+#'@param EXP - Expression data frame object colnames must equal MET rownames
+#'@param MET - MetaData data frame object rownames must equal EXP colnames
+#'@param Vars - Character vector of metadata columns to use in the model eg c("diagnosis", "msex", "APOE", "age_death", "pmi")
+#'@param Diag - Character vector of metadata column to use as response variable must be binary factor eg. "diagnosis"
+#'@param SampleID - Character vector of Meta Column name to use as sample ID eg. 'batchChannel'
+#' 
+#' @return A vector
+#' @importFrom dplyr left_join
+#' @importFrom stats confint
+#' @importFrom stats coef
+#' @export
+#' 
 Logistic_Model <- function( i, EXP, MET, Vars, Diag, SampleID ){
-  #'@i Row Number to use in expression data
-  #'@EXP - Expression data frame object colnames must equal MET rownames
-  #'@MET - MetaData data frame object rownames must equal EXP colnames
-  #'@Vars - Character vector of metadata columns to use in the model eg c("diagnosis", "msex", "APOE", "age_death", "pmi")
-  #'@Diag - Character vector of metadata column to use as response variable must be binary factor eg. "diagnosis"
-  #'@SampleID - Character vector of Meta Column name to use as sample ID eg. 'batchChannel'
+  #'@param i Row Number to use in expression data
+  #'@param EXP - Expression data frame object colnames must equal MET rownames
+  #'@param MET - MetaData data frame object rownames must equal EXP colnames
+  #'@param Vars - Character vector of metadata columns to use in the model eg c("diagnosis", "msex", "APOE", "age_death", "pmi")
+  #'@param Diag - Character vector of metadata column to use as response variable must be binary factor eg. "diagnosis"
+  #'@param SampleID - Character vector of Meta Column name to use as sample ID eg. 'batchChannel'
   
   #Are the tables filered correctly
   if( !(as.numeric(table(row.names(MET)==colnames(EXP))[TRUE]) == length(row.names(MET))) ){
@@ -142,17 +174,28 @@ Logistic_Model <- function( i, EXP, MET, Vars, Diag, SampleID ){
   CI_L <- confint(mylogit)[ 'GeneExp','2.5 %' ]
   CI_H <- confint(mylogit)[ 'GeneExp','97.5 %' ]
   
-  
   return( c( Gene, Coef, OR, CI_L, CI_H, PVal) )
 }
 
-
-#NeuroPath_Calc( GN='VAMP1|P23763', Path='braaksc', Exp=EXP, Dat=MET )
+#' A function
+#' 
+#'@param GN a character ENSG Gene name eg 'VAMP1|P23763'
+#'@param Path the character string of Neuropath column to use for model eg. EITHER: 'ceradsc', 'braaksc', 'cogdx', 'dcfdx_lv'
+#'@param EXP Expression data frame
+#'@param MET Metadata data frame
+#' 
+#' @return A vector
+#' @importFrom dplyr left_join
+#' @importFrom stats confint
+#' @importFrom stats coef
+#' @importFrom stats pnorm
+#' @export
+#'
 NeuroPath_Calc <- function( GN,Path,Exp, MET ){
-  #'@GN a character ENSG Gene name eg 'VAMP1|P23763'
-  #'@Path the character string of Neuropath column to use for model eg. EITHER: 'ceradsc', 'braaksc', 'cogdx', 'dcfdx_lv'
-  #'@EXP Expression data frame
-  #'@MET Metadata data frame
+  #'@param GN a character ENSG Gene name eg 'VAMP1|P23763'
+  #'@param Path the character string of Neuropath column to use for model eg. EITHER: 'ceradsc', 'braaksc', 'cogdx', 'dcfdx_lv'
+  #'@param EXP Expression data frame
+  #'@param MET Metadata data frame
   
   #Are the tables filered correctly
   if( !(as.numeric(table(row.names(MET)==colnames(Exp))[TRUE]) == length(colnames(Exp)) ) ){
@@ -233,9 +276,27 @@ NeuroPath_Calc <- function( GN,Path,Exp, MET ){
   CI_L <- as.vector(ci[1])
   CI_H <- as.vector(ci)[2]
   return( as.vector(c( GN, Coeff, OR, CI_L, CI_H, PVal ) ))
-  
 }
 
+
+
+#' A function
+#' 
+#'@param y 
+#'@param x 
+#'@param nsamp a numeric
+#'@param cores a numeric
+#' 
+#' @return A matrix
+#' @importFrom dplyr left_join
+#' @importFrom spike fastlmbeta2
+#' @importFrom parallel makeCluster
+#' @importFrom parallel parApply
+#' @importFrom parallel registerDoParallel
+#' @importFrom vsbr vsbr
+#' @importFrom spike::fastlmbeta2
+#' @export
+#'
 spvbsrBootstrap = function(y,x,nsamp=100,cores=8){
   library(dplyr)
   library(parallel)
