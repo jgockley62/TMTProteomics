@@ -27,10 +27,13 @@ Imports:
     biomaRt,
     DescTools,
     doParallel,
-    covr
+    covr,
+    spike,
+    vbsr
 Additional_repositories:
     http://ran.synapse.org
 Remotes:
+    blogsdon/spike/spike,
     blogsdon/vbsr/vbsr,
     brian-bot/githubr,
     GabrielHoffman/mvIC@master,

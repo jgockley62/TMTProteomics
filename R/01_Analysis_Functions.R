@@ -294,7 +294,7 @@ NeuroPath_Calc <- function( GN,Path,Exp, MET ){
 #' @importFrom parallel parApply
 #' @importFrom doParallel registerDoParallel
 #' @importFrom stats setNames
-#' @importFrom vsbr vsbr
+#' @importFrom vbsr vbsr
 #' @importFrom spike fastlmbeta2
 #' @export
 #'
