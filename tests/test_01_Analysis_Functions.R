@@ -5,7 +5,7 @@ library(covr)
 #source('../R/01_Analysis_Functions.R')
 
 library(testthat)
-library(sageseqr)
+library(TMTProteomics)
 
 synapser::synLogin()
 
