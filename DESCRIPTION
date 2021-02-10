@@ -26,7 +26,8 @@ Imports:
     kableExtra,
     biomaRt,
     DescTools,
-    doParallel
+    doParallel,
+    covr
 Additional_repositories:
     http://ran.synapse.org
 Remotes:
