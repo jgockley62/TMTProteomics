@@ -2,7 +2,7 @@ library(testthat)
 if (!require(covr)) install.packages('covr')
 library(covr)
 #source('~/Desktop/Projects/TMT_Proteomics/code/01_Analysis_Functions.R')
-source('../code/01_Analysis_Functions.R')
+source('R/01_Analysis_Functions.R')
 
 synapser::synLogin()
 
