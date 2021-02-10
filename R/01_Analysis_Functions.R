@@ -293,8 +293,9 @@ NeuroPath_Calc <- function( GN,Path,Exp, MET ){
 #' @importFrom parallel makeCluster
 #' @importFrom parallel parApply
 #' @importFrom parallel registerDoParallel
+#' @importFrom stats setNames
 #' @importFrom vsbr vsbr
-#' @importFrom spike::fastlmbeta2
+#' @importFrom spike fastlmbeta2
 #' @export
 #'
 spvbsrBootstrap = function(y,x,nsamp=100,cores=8){
